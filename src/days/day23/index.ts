@@ -27,7 +27,7 @@ function runGame(startPack: string, packSize: number, gameLength: number, limit:
     const excluded = extract3(current, index);
     const after = getNextInsert(current, excluded, index);
     insert3(excluded, after, index);
-    current = index[current];
+    current = <number>index.get(current);
   }
 
   return getOrder(index, {limit}).slice(1);
@@ -35,16 +35,12 @@ function runGame(startPack: string, packSize: number, gameLength: number, limit:
 
 function getNextInsert(current: number, excluded: number[], index: Circle['index']) {
   const ex = new Set(excluded);
-  const {length} = index;
-  let safe = length;
+  const {size} = index;
 
   do {
-    if (!--safe) {
-      throw new Error("Unsafe");
-    }
     current -= 1;
     if (current === 0) {
-      current = length - 1;
+      current = size;
     }
   }
   while(ex.has(current));
@@ -53,35 +49,35 @@ function getNextInsert(current: number, excluded: number[], index: Circle['index
 }
 
 function extract3(after: number, index: Circle['index']) {
-  const first = index[after];
-  const middle = index[first];
-  const last = index[middle];
-  const post = index[last];
+  const first = <number>index.get(after);
+  const middle = <number>index.get(first);
+  const last = <number>index.get(middle);
+  const post = <number>index.get(last);
 
   const excluded = [
     first, middle, last
   ];
 
-  index[after] = post;
+  index.set(after, post);
 
   return excluded;
 }
 
-function insert3([first, middle, last]: number[], after: number, index: number[]) {
-  const post = index[after];
-  index[after] = first;
-  index[first] = middle;
-  index[middle] = last;
-  index[last] = post;
+function insert3([first, middle, last]: number[], after: number, index: Circle['index']) {
+  const post = <number>index.get(after);
+  index.set(after, first);
+  index.set(first, middle);
+  index.set(middle, last);
+  index.set(last, post);
 }
 
 function getOrder(index: Circle['index'], {start = 1, limit = 10} = {}): number[] {
-  let current = index[start];
+  let current = <number>index.get(start);
 
   let order = [start];
   do {
     order.push(current);
-    current = index[current];
+    current = <number>index.get(current);
   }
   while(current !== start && order.length < limit)
 
@@ -99,21 +95,20 @@ function createCircle(input: string, length = input.length) {
     }
   );
 
-  const index: number[] = generateArray(
-    length + 1,
-    i => {
-      if (i === 0) {
-        return 0;
-      }
-      if (i <= 10) {
-        return cups[(cups.indexOf(i) + 1) % length]
-      }
-      if (i === length) {
-        return cups[0]
-      }
-      return i + 1;
+  const index = new Map<number, number>();
+
+  for (let i = 1; i <= length; i++) {
+    if (i <= 10) {
+      index.set(i, cups[(cups.indexOf(i) + 1) % length]);
     }
-  );
+    else if (i === length) {
+      index.set(i, cups[0]);
+    }
+    else {
+      index.set(i, i + 1);
+    }
+
+  }
 
   return {current: cups[0], index};
 }
